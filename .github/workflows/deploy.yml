@@ -16,10 +16,14 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ec2-54-227-204-11.compute-1.amazonaws.com
+          host: ec2-13-218-184-185.compute-1.amazonaws.com
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            sudo yum update -y
+            sudo yum install -y httpd
+            sudo systemctl enable httpd
+            sudo systemctl start httpd
             sudo rm -rf /var/www/html/*
             cd /tmp
             git clone https://github.com/MichelBarcellos/pipe-app.git
@@ -28,3 +32,4 @@ jobs:
             sudo chown -R apache:apache /var/www/html/
             sudo chmod -R 755 /var/www/html/
             sudo systemctl restart httpd
+            sudo systemctl status httpd
