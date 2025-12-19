@@ -10,25 +10,28 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ec2-54-227-204-11.compute-1.amazonaws.com >> ~/.ssh/known_hosts
-
-      - name: Test SSH Connection
-        run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "echo 'SSH OK' && whoami && pwd"
-
-      - name: Deploy files
-        run: |
-          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" ./ ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com:/home/ec2-user/website/
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to server
+        uses: easingthemes/ssh-deploy@v4.1.10
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+          ARGS: "-rlgoDzvc -i"
+          SOURCE: "./"
+          REMOTE_HOST: "ec2-54-227-204-11.compute-1.amazonaws.com"
+          REMOTE_USER: "ec2-user"
+          TARGET: "/home/ec2-user/app"
+          EXCLUDE: "/dist/, /node_modules/"
           
-      - name: Move to web directory
-        run: |
-          ssh -i ~/.ssh/id_rsa ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "sudo cp -r /home/ec2-user/website/* /var/www/html/ && sudo chown -R apache:apache /var/www/html/"
+      - name: Set permissions
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-54-227-204-11.compute-1.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo rm -rf /var/www/html/*
+            sudo cp -r /home/ec2-user/app/* /var/www/html/
+            sudo chown -R apache:apache /var/www/html/
+            sudo chmod -R 755 /var/www/html/
     
