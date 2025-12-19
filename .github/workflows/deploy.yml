@@ -13,13 +13,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy via rsync
-        uses: burnett01/rsync-deployments@6.0.0
-        with:
-          switches: -avzr --delete
-          path: ./
-          remote_path: /var/www/html/
-          remote_host: ec2-54-227-204-11.compute-1.amazonaws.com
-          remote_user: ec2-user
-          remote_key: ${{ secrets.EC2_SSH_KEY }}
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ec2-54-227-204-11.compute-1.amazonaws.com >> ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "echo 'SSH OK' && whoami && pwd"
+
+      - name: Deploy files
+        run: |
+          rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" ./ ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com:/home/ec2-user/website/
+          
+      - name: Move to web directory
+        run: |
+          ssh -i ~/.ssh/id_rsa ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "sudo cp -r /home/ec2-user/website/* /var/www/html/ && sudo chown -R apache:apache /var/www/html/"
     
