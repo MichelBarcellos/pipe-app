@@ -20,23 +20,11 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo yum update -y
-            sudo yum install -y httpd
-            sudo systemctl enable httpd
-            sudo systemctl start httpd
+            sudo systemctl stop httpd
             sudo rm -rf /var/www/html/*
-            cd /tmp
-            rm -rf pipe-app
-            git clone https://github.com/MichelBarcellos/pipe-app.git
-            cd pipe-app
-            sudo cp -f index.html /var/www/html/
-            sudo cp -f *.css /var/www/html/ 2>/dev/null || true
-            sudo cp -f *.js /var/www/html/ 2>/dev/null || true
-            sudo cp -f *.jpg *.png *.webp *.avif /var/www/html/ 2>/dev/null || true
-            cd /tmp
-            sudo rm -rf pipe-app
+            cd /var/www/html
+            sudo git clone https://github.com/MichelBarcellos/pipe-app.git .
+            sudo rm -rf .git .github
             sudo chown -R apache:apache /var/www/html/
             sudo chmod -R 755 /var/www/html/
-            sudo systemctl restart httpd
-            echo 'Files in /var/www/html/:'
-            ls -la /var/www/html/
+            sudo systemctl start httpd
