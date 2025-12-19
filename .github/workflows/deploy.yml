@@ -14,12 +14,32 @@ jobs:
       - name: Checkout the files
         uses: actions/checkout@v4
 
-      - name: Copy files with SSH
-        uses: easingthemes/ssh-deploy@main
-        env:
-        SSH_PRIVATE_KEY: ${{secrets.EC2_SSH_KEY}}
-        SOURCE: "./"
-        REMOTE_HOST: "ec2-54-227-204-11.compute-1.amazonaws.com"
-        REMOTE_USER: "ec2-user"
-        TARGET: "/var/www/html/"
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-54-227-204-11.compute-1.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo rm -rf /var/www/html/*
+            
+      - name: Copy files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ec2-54-227-204-11.compute-1.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "/tmp/deploy"
+          
+      - name: Move files to web directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ec2-54-227-204-11.compute-1.amazonaws.com
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo cp -r /tmp/deploy/* /var/www/html/
+            sudo chown -R apache:apache /var/www/html/
+            sudo rm -rf /tmp/deploy
     
