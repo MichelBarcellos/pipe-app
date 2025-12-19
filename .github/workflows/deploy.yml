@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -20,6 +21,8 @@ jobs:
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            sudo yum install -y httpd git
+            sudo systemctl enable httpd
             sudo systemctl stop httpd
             sudo rm -rf /var/www/html/*
             cd /var/www/html
