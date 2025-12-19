@@ -10,28 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       
-      - name: Deploy to server
-        uses: easingthemes/ssh-deploy@v4.1.10
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          ARGS: "-rlgoDzvc -i"
-          SOURCE: "./"
-          REMOTE_HOST: "ec2-54-227-204-11.compute-1.amazonaws.com"
-          REMOTE_USER: "ec2-user"
-          TARGET: "/home/ec2-user/app"
-          EXCLUDE: "/dist/, /node_modules/"
-          
-      - name: Set permissions
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ec2-54-227-204-11.compute-1.amazonaws.com
-          username: ec2-user
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            sudo rm -rf /var/www/html/*
-            sudo cp -r /home/ec2-user/app/* /var/www/html/
-            sudo chown -R apache:apache /var/www/html/
-            sudo chmod -R 755 /var/www/html/
+      - name: Deploy
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+          scp -i key.pem -o StrictHostKeyChecking=no -r ./* ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com:/home/ec2-user/
+          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "sudo cp -r /home/ec2-user/*.* /var/www/html/ && sudo chown -R apache:apache /var/www/html/"
+          rm key.pem
     
