@@ -13,11 +13,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Deploy
+      - name: Setup SSH
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
-          scp -i key.pem -o StrictHostKeyChecking=no -r ./* ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com:/home/ec2-user/
-          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "sudo cp -r /home/ec2-user/*.* /var/www/html/ && sudo chown -R apache:apache /var/www/html/"
-          rm key.pem
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+      - name: Test connection
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "echo 'Connection OK'"
+          
+      - name: Deploy files
+        run: |
+          tar -czf deploy.tar.gz --exclude='.git' --exclude='node_modules' .
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no deploy.tar.gz ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com:/home/ec2-user/
+          
+      - name: Extract and move
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ec2-user@ec2-54-227-204-11.compute-1.amazonaws.com "
+            cd /home/ec2-user && 
+            tar -xzf deploy.tar.gz && 
+            sudo rm -rf /var/www/html/* && 
+            sudo cp -r ./* /var/www/html/ && 
+            sudo chown -R apache:apache /var/www/html/ && 
+            rm deploy.tar.gz
+          "
     
