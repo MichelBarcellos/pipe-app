@@ -26,13 +26,17 @@ jobs:
             sudo systemctl start httpd
             sudo rm -rf /var/www/html/*
             cd /tmp
+            rm -rf pipe-app
             git clone https://github.com/MichelBarcellos/pipe-app.git
-            sudo cp -r pipe-app/* /var/www/html/
+            cd pipe-app
+            sudo cp -f index.html /var/www/html/
+            sudo cp -f *.css /var/www/html/ 2>/dev/null || true
+            sudo cp -f *.js /var/www/html/ 2>/dev/null || true
+            sudo cp -f *.jpg *.png *.webp *.avif /var/www/html/ 2>/dev/null || true
+            cd /tmp
             sudo rm -rf pipe-app
-            sudo rm -f /var/www/html/.git* /var/www/html/README.md
             sudo chown -R apache:apache /var/www/html/
             sudo chmod -R 755 /var/www/html/
-            echo 'DirectoryIndex index.html' | sudo tee /etc/httpd/conf.d/directoryindex.conf
             sudo systemctl restart httpd
-            sudo systemctl status httpd
+            echo 'Files in /var/www/html/:'
             ls -la /var/www/html/
